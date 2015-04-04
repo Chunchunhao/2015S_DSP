@@ -9,16 +9,20 @@ class HMM
 
 public:
 	HMM() = default;
-	HMM(std::string&  );	// load HMM;
+	HMM(std::string&);	// load HMM;
+	HMM(const HMM &);	// copy constructor
+	~HMM();	// deconstructor
 
 	void loadHMM(std::string& );
 	void dumpHMM(std::string& );
-	// int  loadHMM
-	// void dumpHMM
+	// int load_models(std::string& );
+	// void dump_models(std::string& );
+
 
 	void BWA(int, std::string& );
 	void verifyHMM();
 	void justifyHMM();
+
 
 private:
 	std::string model_name;
@@ -35,7 +39,6 @@ std::vector<int> samplize( std::string& samples );
 std::ifstream& open_file (std::ifstream& in, const std::string& filename); 
 std::ofstream& write_file (std::ofstream& out, const std::string& filename);
 
-
-// std::
+int load_models( std::vector< HMM > &, std::string );
 
 #endif 

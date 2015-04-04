@@ -6,13 +6,44 @@
 #include <vector>
 #include <iomanip>
 
+#include <math.h>
 #include "hmm.h"
 
 using namespace std;
 
+int damm =0;
 
 HMM::HMM(string& init_model) {
 	loadHMM(init_model);
+}
+
+HMM::HMM(const HMM & cc) {
+	model_name = cc.model_name;
+	state_num = cc.state_num;
+	observe_num = cc.observe_num;
+	initial.resize(state_num);
+	for( int i=0; i< state_num; i++)
+		initial[i] = cc.initial[i];
+
+	transition.resize(state_num);
+	for( int i=0; i<state_num; i++)
+		transition[i].resize(state_num);
+
+	for( int i=0; i<state_num; i++)
+		for( int j=0; j<state_num; j++)
+			transition[i][j] = cc.transition[i][j];
+
+	observation.resize(observe_num);
+	for( int i=0; i<observe_num; i++)
+		observation[i].resize(state_num);
+
+	for(int i=0; i<observe_num; i++)
+		for( int j=0; j<state_num; j++)
+			observation[i][j] = cc.observation[i][j];
+}
+
+HMM::~HMM() {
+	// nothing to do 
 }
 
 void HMM::loadHMM(string& fn_init_model) 
@@ -84,30 +115,30 @@ void HMM::dumpHMM(string& fn_hmm_dump)
 	write_file(dump_hmm, fn_hmm_dump);
 	dump_hmm << "initial: " << state_num << endl;
 	for( int i=0; i< state_num - 1; i++)
-		dump_hmm << setprecision(5) <<  initial[i] << " ";
-	dump_hmm << setprecision(5) <<  initial[state_num-1] << endl;
+		dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(initial[i]) << " ";
+	dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(initial[state_num-1]) << endl;
 
 	dump_hmm << endl << "transition: " << state_num << endl;
 	for( int i=0; i< state_num; i++) {
 		for( int j=0; j< state_num-1; j++) {
-			dump_hmm << setprecision(5) <<  transition[i][j] << " ";
+			dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(transition[i][j]) << " ";
 		}
-		dump_hmm << setprecision(5) <<  transition[i][state_num-1] << endl;
+		dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(transition[i][state_num-1]) << endl;
 	}
 
 	dump_hmm << endl << "observation: " << observe_num << endl;
 	for( int i=0; i< observe_num; i++) {
 		for( int j=0; j< state_num-1; j++) {
-			dump_hmm << setprecision(5) <<  observation[i][j] << " ";
+			dump_hmm << std::fixed <<  setprecision(5) << preciFive(observation[i][j]) << " ";
 		}
-		dump_hmm << setprecision(5) <<  observation[i][state_num-1] << endl;
+		dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(observation[i][state_num-1]) << endl;
 	}
 }
 
 void HMM::BWA(int iteration, string& fn_seq_model) {
 
   /// -- Traning iteration 
-  while( --iteration ) {
+  while( iteration-- ) {
   cout << iteration << " training left " << endl;
 	
 	ifstream samples;
@@ -160,7 +191,7 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 		// Alpha : Induction 
 		for( int t=1; t<sampleLen; t++ ) {			
 			for( int i=0; i<state_num; i++ ){
-				double prevSumAlpha = 0.0;
+				double prevSumAlpha = 0;
 				for( int k=0; k<state_num; k++) {
 					prevSumAlpha += alpha[t-1][k] * transition[k][i];
 				}
@@ -176,18 +207,20 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 		
 		// Beta : initialization
 		for( int i=0; i<state_num; i++ )
-			beta[sampleLen-1][i] = 1.0;
+			beta[sampleLen-1][i] = 1;
 
 		// Beta : Induction
 		for( int t=sampleLen-2; t>=0; t-- ) {
 			for( int i=0; i<state_num; i++ ) {
-				double postSumBeta = 0.0;
+				double postSumBeta = 0;
 				for( int j=0; j<state_num; j++) {
 					postSumBeta += transition[i][j] * observation[sample[t+1]][j] * beta[t+1][j];
 				}
 				beta[t][i] = postSumBeta;
 			}
 		}
+
+
 
 		/// O--- Gemma
 		vector< vector<double> > gemma;
@@ -196,15 +229,18 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 			gemma[t].resize(state_num);
 
 		for( int t=0; t<sampleLen; t++ ) {
-			double normalize_gemma = 0.0;
+			double normalize_gemma = 0;
 			for( int i=0; i<state_num; i++ ) {
-				normalize_gemma += alpha[t][i] * beta[t][i];
+				normalize_gemma += ( alpha[t][i] * beta[t][i] );
 			}
 			for( int i=0; i<state_num; i++ ) {
-				gemma[t][i] = alpha[t][i] * beta[t][i] / normalize_gemma;
+				gemma[t][i] = ( alpha[t][i] * beta[t][i] / normalize_gemma );
 			}
 		}
 		
+
+	
+
 		/// O--- epsilon
 		vector< vector< vector<double> > > epsilon;
 		epsilon.resize(sampleLen); // time * state * state 
@@ -216,7 +252,7 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 		}
 
 		for( int t=0; t<sampleLen-1; t++ ) {
-			double normalize_epsilon = 0.0;
+			double normalize_epsilon = 0;
 			for( int i=0; i<state_num; i++ ) {
 				for( int j=0; j<state_num; j++) {
 					normalize_epsilon += alpha[t][i] * transition[i][j] * observation[sample[t+1]][j] * beta[t+1][j];
@@ -229,7 +265,6 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 			}
 		}
 
-
 		/// O--- Update Accumlate
 		++ numberOfSample;
 
@@ -238,36 +273,33 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 			accm_initial[i] += gemma[0][i];
 		}
 
-
 		// Accumlate Transition 
 		for( int i=0; i<state_num; i++ ) {
 			for( int j=0; j<state_num; j++) {
-				double epsilon_sum = 0.0;
-				double gemma_sum = 0.0;
+				double epsilon_sum = 0;
+				double gemma_sum = 0;
 				for( int t=0; t<sampleLen-1; t++ ) {
 					epsilon_sum += epsilon[t][i][j];
 					gemma_sum += gemma[t][i];
 				}
-				
 				accm_transition_nu[i][j] += epsilon_sum;
 				accm_transition_de[i][j] += gemma_sum;
-			}
+			}	
 		}
 
 		// Accumulate Observation 
 		for( int j=0; j<observe_num; j++ ) {
 			for( int k=0; k<state_num; k++) {
-				double 	gemma_sum_with_observ = 0.0;
-				double  gemma_sum = 0.0;
+				double  gemma_sum = 0;
 				for( int t=0; t<sampleLen; t++) {
-					if( sample[t] == k ) {
-						gemma_sum_with_observ += gemma[t][j];
-					}
-					gemma_sum += gemma[t][j];
-				}
-				
-				accm_observation_nu[j][k] = gemma_sum_with_observ;
-				accm_observation_de[j][k] = gemma_sum;
+					gemma_sum += gemma[t][k];
+				}				
+				accm_observation_de[j][k] += gemma_sum;
+			}
+		}
+		for( int k=0; k<state_num; k++ ) {
+			for( int t=0; t<sampleLen; t++) {
+				accm_observation_nu[sample[t]][k] += gemma[t][k];
 			}
 		}
 
@@ -278,20 +310,19 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 	cout << "Total input is " << numberOfSample << endl;
 	// update initial 
 	for( int i=0; i<state_num; i++)
-		initial[i] = preciFive(accm_initial[i] / numberOfSample );
+		initial[i] = accm_initial[i] / numberOfSample;
 	// update transition
 	for( int i=0; i<state_num; i++)
-		for( int j=0; j<state_num; j++)
-			transition[i][j] = preciFive(accm_transition_nu[i][j] / accm_observation_de[i][j] / numberOfSample );
+		for( int j=0; j<state_num; j++) 
+			transition[i][j] = accm_transition_nu[i][j] / accm_transition_de[i][j];
+
 	// update observation
 	for( int j=0; j<observe_num; j++)
 		for( int k=0; k<state_num; k++)
-			observation[j][k] = preciFive(accm_transition_nu[j][k] / accm_observation_de[j][k] / numberOfSample );
+			observation[j][k] = accm_observation_nu[j][k] / accm_observation_de[j][k];
 
 	cout << "Finish Training" << endl;
-	verifyHMM();
-	justifyHMM();
-	verifyHMM();
+	// justifyHMM(); // we simply shared the double error
 	samples.close();
   }
 }
@@ -302,7 +333,7 @@ void HMM::verifyHMM() {
 	for( int i=0; i<state_num; i++) {
 		accum += initial[i];
 	}
-	if( accum != 1.0 ){
+	if( !cmpDouble(accum, 1) ){
 		cerr << "Iniitial (pi) is not equal to 1 , is { " << accum << " }" << endl;
 	}
 
@@ -312,7 +343,7 @@ void HMM::verifyHMM() {
 		for( int j=0; j<state_num; j++) {
 			accum += transition[i][j];
 		}
-		if( accum != 1.0 ) {
+		if( !cmpDouble(accum, 1) ){
 			cerr << "Transition row [ " << i << " ] is not equal to 1 , is { " << accum << " }"  << endl;			
 		}
 	}
@@ -323,7 +354,7 @@ void HMM::verifyHMM() {
 		for( int j=0; j<observe_num; j++ ) {
 			accum += observation[j][k];
 		}
-		if( accum != 1.0 ) {
+		if( !cmpDouble(accum, 1) ) {
 			cerr << "Observation column [ " << k << " ] is not equal to 1 , is { " << accum << " }"  << endl;			
 		}
 	}
@@ -337,11 +368,14 @@ void HMM::justifyHMM() {
 	for( int i=0; i<state_num; i++) {
 		delta += initial[i];
 	}
-	if( delta != 1.0 ){
-		cout << "Initial shared delta : " << delta << endl;
-		shared = (delta-1) / state_num;
+	if( !cmpDouble(delta, 1) ){
+		// cout << "Initial shared delta : " << delta << endl;
+		shared = fabs(delta-1) / state_num;
 		for( int i=0; i<state_num; i++) {
-			initial[i] += shared;
+			if(delta > 1 )
+				initial[i] -= shared;
+			else
+				initial[i] += shared;
 		}
 	}
 
@@ -351,11 +385,14 @@ void HMM::justifyHMM() {
 		for( int j=0; j<state_num; j++) {
 			delta += transition[i][j];
 		}
-		if( delta != 1.0 ) {
-			cout << "Transition shared delta : " << delta << endl;
-			shared = (delta-1) / state_num;
+		if( !cmpDouble(delta, 1) ) {
+			// cout << "Transition shared delta : " << delta << endl;
+			shared = fabs(delta-1) / state_num;
 			for( int j=0; j<state_num; j++) {
-				transition[i][j] += shared;
+				if(delta > 1 )
+					transition[i][j] -= shared;
+				else
+					transition[i][j] += shared;	
 			}
 		}
 	}
@@ -366,20 +403,36 @@ void HMM::justifyHMM() {
 		for( int j=0; j<observe_num; j++ ) {
 			delta += observation[j][k];
 		}
-		if( delta != 1.0 ) {
-			cout << "Observation shared delta : " << delta << endl;
-			shared = (delta-1) / state_num;
+		if( !cmpDouble(delta, 1) ) {
+			// cout << "Observation shared delta : " << delta << endl;
+			shared = fabs(delta-1) / state_num;
 			for( int j=0; j<observe_num; j++) {
-				observation[j][k] += shared;
+				if(delta > 1)
+					observation[j][k] -= shared;
+				else 
+					observation[j][k] += shared;
 			}
 		}
 	}
 }
 
+int load_models(vector<HMM>& modelLists, string fn_model) {
+	ifstream model;
+	open_file(model, fn_model);
+	string line; // each line ;
+	int count = 0;
+	while( getline(model, line) ) {
+		auto newModel = HMM( line);
+		modelLists.push_back(newModel);
+		++count;
+	}
+	model.close();
+	return count;
+}
+
 bool cmpDouble (double A, double B) {
 	double diff = A - B ;
-	double lamda = 0.00001;
-	return (diff - lamda) && (-diff - lamda );
+	return fabs(diff) < 0.000001;
 }
 
 
@@ -396,6 +449,7 @@ double preciFive ( double in) {
 	result = (double)trans / 100000;
 	return result;
 }
+
 
 vector<int> samplize( string& samples ) {
 	vector<int> parseSample2int;
