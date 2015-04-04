@@ -13,8 +13,8 @@ using namespace std;
 
 int damm =0;
 
-HMM::HMM(string& init_model) {
-	loadHMM(init_model);
+HMM::HMM(string& init_model, string& name) {
+	loadHMM(init_model, name);
 }
 
 HMM::HMM(const HMM & cc) {
@@ -46,8 +46,9 @@ HMM::~HMM() {
 	// nothing to do 
 }
 
-void HMM::loadHMM(string& fn_init_model) 
+void HMM::loadHMM(string& fn_init_model, string& mdname) 
 {
+	model_name = mdname;
 	ifstream init_model;
 	open_file(init_model, fn_init_model);
 	string line; // each line ;
@@ -115,23 +116,23 @@ void HMM::dumpHMM(string& fn_hmm_dump)
 	write_file(dump_hmm, fn_hmm_dump);
 	dump_hmm << "initial: " << state_num << endl;
 	for( int i=0; i< state_num - 1; i++)
-		dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(initial[i]) << " ";
-	dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(initial[state_num-1]) << endl;
+		dump_hmm << std::fixed <<  setprecision(5) <<  /* preciFive( */ initial[i] << " ";
+	dump_hmm << std::fixed <<  setprecision(5) <<  /* preciFive( */ initial[state_num-1] << endl;
 
 	dump_hmm << endl << "transition: " << state_num << endl;
 	for( int i=0; i< state_num; i++) {
 		for( int j=0; j< state_num-1; j++) {
-			dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(transition[i][j]) << " ";
+			dump_hmm << std::fixed <<  setprecision(5) <<  /* preciFive( */ transition[i][j] << " ";
 		}
-		dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(transition[i][state_num-1]) << endl;
+		dump_hmm << std::fixed <<  setprecision(5) <<  /* preciFive( */ transition[i][state_num-1] << endl;
 	}
 
 	dump_hmm << endl << "observation: " << observe_num << endl;
 	for( int i=0; i< observe_num; i++) {
 		for( int j=0; j< state_num-1; j++) {
-			dump_hmm << std::fixed <<  setprecision(5) << preciFive(observation[i][j]) << " ";
+			dump_hmm << std::fixed <<  setprecision(5) << /* preciFive( */ observation[i][j] << " ";
 		}
-		dump_hmm << std::fixed <<  setprecision(5) <<  preciFive(observation[i][state_num-1]) << endl;
+		dump_hmm << std::fixed <<  setprecision(5) <<  /* preciFive( */ observation[i][state_num-1] << endl;
 	}
 }
 
@@ -219,8 +220,6 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 				beta[t][i] = postSumBeta;
 			}
 		}
-
-
 
 		/// O--- Gemma
 		vector< vector<double> > gemma;
@@ -422,7 +421,7 @@ int load_models(vector<HMM>& modelLists, string fn_model) {
 	string line; // each line ;
 	int count = 0;
 	while( getline(model, line) ) {
-		auto newModel = HMM( line);
+		auto newModel = HMM( line, line);
 		modelLists.push_back(newModel);
 		++count;
 	}
@@ -435,18 +434,79 @@ bool cmpDouble (double A, double B) {
 	return fabs(diff) < 0.000001;
 }
 
+double HMM::viterbi(const vector<int>& seq){
+	int T = seq.size();
+	vector< vector<double> > delta;
+	delta.resize(T);
+	for(int i=0; i<T; i++)
+		delta[i].resize(state_num);
+
+	// Initialization
+	for( int i=0; i<state_num; i++)
+		delta[0][i] = initial[i] * observation[seq[0]][i];
+	
+	// Recursion
+	for( int t=1; t<T; t++) {
+		for( int i=0; i<state_num; i++) {
+			double prevMAX = 0;
+			// previoud max 
+			for(int pi=0; pi<state_num; pi++){ // prev_i
+				if( delta[t-1][pi]*transition[pi][i] > prevMAX ){
+					prevMAX = delta[t-1][pi]*transition[pi][i];
+				}
+			}
+			// now 
+			delta[t][i] = prevMAX * observation[seq[t]][i];
+		}
+	}
+	double viterbiMAX = 0;
+	for( int i=0; i<state_num; i++){
+		if( delta[T-1][i] > viterbiMAX ){
+			viterbiMAX = delta[T-1][i];
+		}
+	}
+	return viterbiMAX;
+}
+
+void testing( std::vector<HMM> & modelLists, string fn_test, string fn_result) {
+	ifstream testdatas;
+	open_file(testdatas, fn_test);
+	ofstream testresult;
+	write_file(testresult, fn_result);
+
+	string line;
+	while( getline(testdatas, line) ) {
+		vector< int > sample;
+		sample = samplize( line );
+		
+		int winner = 0;
+		double winner_state = 0;
+		for( int m=0; m<modelLists.size(); m++) {
+			double challenger = 0;
+			challenger = modelLists[m].viterbi(sample);
+			if( challenger > winner_state ){
+				winner_state = challenger;
+				winner = m;
+			}
+		}
+		testresult << modelLists[winner].model_name << " " << winner_state << endl;
+	}
+	testresult.close();
+	testdatas.close();
+
+}
 
 // There are something happend if we estimate under three precision they have validation problem
 double preciFive ( double in) {
 	double result;
-	int trans = in * 100000;
+	int trans = in * 1000000;
 	if( (trans % 10) > 4 ) {
 		trans = trans - ( trans % 10 ) + 10;
 	}
 	else {
 		trans = trans - ( trans % 10 );
 	}
-	result = (double)trans / 100000;
+	result = (double)trans / 1000000;
 	return result;
 }
 
@@ -489,5 +549,32 @@ ofstream& write_file (ofstream& out, const string& filename)
   return out;
 }
 
+
+double accuracy(std::string fn_result, std::string fn_correct) {
+	ifstream result, correct;
+	ofstream answerWriter;
+
+	open_file(result, fn_result);
+	open_file(correct, fn_correct);
+	write_file(answerWriter, "acc.txt");
+
+	string lineResults, lineCorrect;
+	int Ycount=0, Tcount=0; 
+	while( getline(result, lineResults) ){
+		string lineResult;
+		istringstream iss(lineResults);
+		iss >> lineResult;
+		getline(correct, lineCorrect);
+		if( lineCorrect == lineResult )
+			Ycount++;
+		Tcount++;
+	}
+	result.close();
+	correct.close();
+	double answer = (double)Ycount/Tcount;
+	answerWriter << "accuracy = " << std::fixed << setprecision(6) << answer << endl;
+	answerWriter.close();
+	return answer;
+}
 
 

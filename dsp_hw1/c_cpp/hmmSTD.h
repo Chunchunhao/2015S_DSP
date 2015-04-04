@@ -138,4 +138,5 @@ static void dump_models( HMM *hmm, const int num )
    }
 }
 
+
 #endif

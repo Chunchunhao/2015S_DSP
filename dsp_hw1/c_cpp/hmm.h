@@ -9,23 +9,22 @@ class HMM
 
 public:
 	HMM() = default;
-	HMM(std::string&);	// load HMM;
+	HMM(std::string&, std::string&);	// load HMM;
 	HMM(const HMM &);	// copy constructor
 	~HMM();	// deconstructor
 
-	void loadHMM(std::string& );
+	void loadHMM(std::string&, std::string&);
 	void dumpHMM(std::string& );
-	// int load_models(std::string& );
-	// void dump_models(std::string& );
 
+	double viterbi(const std::vector<int> &);
 
 	void BWA(int, std::string& );
 	void verifyHMM();
 	void justifyHMM();
 
-
-private:
 	std::string model_name;
+	
+private:
 	int state_num;									// number of state
 	int observe_num; 								// number of observation 
 	std::vector<double> initial;					// initial prob.
@@ -40,5 +39,7 @@ std::ifstream& open_file (std::ifstream& in, const std::string& filename);
 std::ofstream& write_file (std::ofstream& out, const std::string& filename);
 
 int load_models( std::vector< HMM > &, std::string );
+void testing( std::vector<HMM> &, std::string, std::string );
 
+double accuracy(std::string, std::string);
 #endif 

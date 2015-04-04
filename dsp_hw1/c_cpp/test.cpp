@@ -1,18 +1,39 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <cstdlib>
+
 #include "hmm.h"
 #include <math.h>
 
-int main()
-{
-/*
-	HMM hmms[5];
-	load_models( "modellist.txt", hmms, 5);
-	dump_models( hmms, 5);
-*/
-	HMM hmm_initial;
-	loadHMM( &hmm_initial, "../model_init.txt" );
-	dumpHMM( stderr, &hmm_initial );
+using namespace std;
 
-	printf("%f\n", log(1.5) ); // make sure the math library is included
+int main(int argc, char* argv[])
+{
+	if( argc != 4 ) {
+		cerr << "./test modellist.txt testing_data1.txt result.txt" << endl;
+		exit(1);
+	}
+	string fn_modelList(argv[1]), fn_testData(argv[2]), fn_result(argv[3]);
+
+	vector<HMM> modelLists;
+	int modelNum = 0;
+	modelNum = load_models(modelLists, fn_modelList);
+
+/*
+	cout << "Total modes = " << modelNum << endl;
+
+	for( int i=0; i<modelNum; i++ )
+		modelLists[i].verifyHMM();
+*/
+	testing(modelLists, fn_testData, fn_result);
+	cout << "Finish Testing" << endl;
+	
+	
+	string test_answer("../testing_answer.txt");
+	double acc = accuracy(fn_result, test_answer);
+	cout << "accuracy = " << acc << endl;
 	return 0;
 }
 
