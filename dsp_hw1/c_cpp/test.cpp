@@ -11,9 +11,15 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
+	int accbit = 0;
 	if( argc != 4 ) {
-		cerr << "./test modellist.txt testing_data1.txt result.txt" << endl;
-		exit(1);
+		if( argc != 5 ) {
+			cerr << "./test modellist.txt testing_data1.txt result.txt (acc_file)" << endl;
+			exit(1);
+		}
+		else {
+			accbit = 1;
+		}
 	}
 	string fn_modelList(argv[1]), fn_testData(argv[2]), fn_result(argv[3]);
 
@@ -28,12 +34,16 @@ int main(int argc, char* argv[])
 		modelLists[i].verifyHMM();
 */
 	testing(modelLists, fn_testData, fn_result);
-	cout << "Finish Testing" << endl;
+	// cout << "Finish Testing" << endl;
 	
-	
-	string test_answer("../testing_answer.txt");
-	double acc = accuracy(fn_result, test_answer);
-	cout << "accuracy = " << acc << endl;
+	if( accbit == 1) {
+		string test_answer(argv[4]);
+		double acc = accuracy(fn_result, test_answer);
+		cout << "accuracy = " << acc << endl;
+	}
+	else {
+		cout << "Success with data in " << fn_result << endl;
+	}
 	return 0;
 }
 

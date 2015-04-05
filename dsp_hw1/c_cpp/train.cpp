@@ -28,7 +28,7 @@ int main (int argc, char* argv[])
 	// cout << argv[0] << " " << argv[1] << " " << argv[2] << " " << argv[3] << " " << argv[4] << endl;
 	
 	int epoch = atoi(argv[1]); // number of iteration
-	cout << "Training iteration: " << epoch << endl;
+	// cout << "Training iteration: " << epoch << endl;
 	ifstream model_init, seq_model, dump_model;
 	string fn_hmm_init(argv[2]), fn_seq_model(argv[3]), fn_dump_hmm(argv[4]);
 

@@ -140,7 +140,7 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 
   /// -- Traning iteration 
   while( iteration-- ) {
-  cout << iteration << " training left " << endl;
+  // cout << iteration << " training left " << endl;
 	
 	ifstream samples;
 	open_file( samples, fn_seq_model);
@@ -306,7 +306,7 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 
 
 	/// --- Update HMM
-	cout << "Total input is " << numberOfSample << endl;
+	// cout << "Total input is " << numberOfSample << endl;
 	// update initial 
 	for( int i=0; i<state_num; i++)
 		initial[i] = accm_initial[i] / numberOfSample;
@@ -320,7 +320,7 @@ void HMM::BWA(int iteration, string& fn_seq_model) {
 		for( int k=0; k<state_num; k++)
 			observation[j][k] = accm_observation_nu[j][k] / accm_observation_de[j][k];
 
-	cout << "Finish Training" << endl;
+	// cout << "Finish Training" << endl;
 	// justifyHMM(); // we simply shared the double error
 	samples.close();
   }
